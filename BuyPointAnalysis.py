@@ -15,6 +15,7 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_curve
 from FunctionList import buyjudge,stochastic_oscillator,plot_precision_recall_vs_threshold
+from sklearn import preprocessing   
 matplotlib.style.use('ggplot')
 
 method_name = [{
@@ -74,7 +75,6 @@ X=df.loc[:,['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAVO
             'VIX_ROC','VIXMA5','VIXMA10','Close_ROC','rsv','K','D','J',
             'K_ROC','D_ROC','K_diff','D_diff','J_ROC','J_diff','Close/MA10',
             'Close/MA20','Close/MA50','Close/MA100','Close/MA200','VAR5','VAR10']]
-from sklearn import preprocessing   
 min_max_scaler = preprocessing.MinMaxScaler()  
 X = min_max_scaler.fit_transform(X) 
 y=df.loc[:,'Good Buy Point?']
@@ -124,7 +124,7 @@ dfplot=pd.DataFrame()
 dfplot.loc[:,'Close']=df[3500:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
 #for threshold in np.arange(0.65,0.683,0.003):
-for threshold in np.arange(0.63,0.72,0.03):
+for threshold in np.arange(0.66,0.876,0.04):
     dfplot['Buy']=0
     dfplot['BuyPrice']=0
     dfplot.loc[(dfplot['GoodBuyProb']>threshold),'Buy'] = 1
@@ -138,6 +138,7 @@ for threshold in np.arange(0.63,0.72,0.03):
     plt.ylim([min(y1)-10, max(y1)+10])
     plt.title(stock+'\nNaive Bayes(smooth=1)\nThreshold='+str(round(threshold,3)))
     plt.figtext(0.35,0.2,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
+    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
     plt.legend(loc='upper left')
     plt.show()
 #%%  SVM             
@@ -161,6 +162,7 @@ for threshold in np.arange(0.62,0.8,0.035):
     plt.ylim([min(y1)-10, max(y1)+10])
     plt.title(stock+'\nSVM Linear\nThreshold='+str(round(threshold,3)))
     plt.figtext(0.35,0.3,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
+    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
     plt.legend(loc='upper left')
     plt.show()
 #%%  SVM             
@@ -182,7 +184,8 @@ for threshold in np.arange(0.63,0.67,0.01):
     plt.plot(x, y1,'c',label='Price')
     plt.plot(x, y2, 'o', ms=4.5, label='Buy Point')
     plt.ylim([min(y1)-10, max(y1)+10])
-    plt.title(stock+'\nSVM Linear\nThreshold='+str(round(threshold,3)))
+    plt.title(stock+'\nSVM \nThreshold='+str(round(threshold,3)))
     plt.figtext(0.35,0.3,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
+    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
     plt.legend(loc='upper left')
     plt.show()
