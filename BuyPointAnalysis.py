@@ -75,8 +75,8 @@ X=df.loc[:,['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAVO
             'VIX_ROC','VIXMA5','VIXMA10','Close_ROC','rsv','K','D','J',
             'K_ROC','D_ROC','K_diff','D_diff','J_ROC','J_diff','Close/MA10',
             'Close/MA20','Close/MA50','Close/MA100','Close/MA200','VAR5','VAR10']]
-min_max_scaler = preprocessing.MinMaxScaler()  
-X = min_max_scaler.fit_transform(X) 
+
+X = preprocessing.MinMaxScaler().fit_transform(X) 
 y=df.loc[:,'Good Buy Point?']
 
 # Split train set and test set
@@ -166,6 +166,30 @@ for threshold in np.arange(0.62,0.8,0.035):
     plt.legend(loc='upper left')
     plt.show()
 #%%  SVM             
+clfbuy = svm.SVC(C=1,probability=True)
+clfbuy.fit(xtrain, ytrain)
+buypredicted = clfbuy.predict_proba(xtest)    
+dfplot=pd.DataFrame()
+dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
+for threshold in np.arange(0.63,0.67,0.01):
+    dfplot['Buy']=0
+    dfplot['BuyPrice']=0
+    dfplot.loc[(dfplot['GoodBuyProb']>threshold),'Buy'] = 1
+    dfplot.loc[(dfplot['Buy']==1),'BuyPrice'] = dfplot['Close']
+    buyratio=round(100*dfplot['Buy'].sum()/len(dfplot['Buy']),2)
+    x=dfplot.index
+    y1=dfplot['Close']
+    y2=dfplot['BuyPrice']
+    plt.plot(x, y1,'c',label='Price')
+    plt.plot(x, y2, 'o', ms=4.5, label='Buy Point')
+    plt.ylim([min(y1)-10, max(y1)+10])
+    plt.title(stock+'\nSVM \nThreshold='+str(round(threshold,3)))
+    plt.figtext(0.35,0.3,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
+    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
+    plt.legend(loc='upper left')
+    plt.show()
+#%%  Random Forrest            
 clfbuy = svm.SVC(C=1,probability=True)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    

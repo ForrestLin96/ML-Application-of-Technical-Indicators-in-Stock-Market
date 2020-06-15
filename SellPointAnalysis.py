@@ -12,6 +12,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn import linear_model, datasets
 from sklearn import svm
 from xgboost import XGBClassifier as Xgb
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_curve
@@ -20,6 +21,8 @@ from FunctionList import selljudge,stochastic_oscillator,calculate_k,calculate_d
 from sklearn import preprocessing   
 
 method_name = [{
+                 'Random Forrest':RandomForestClassifier(),
+                 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
                 # 'SVC(C=1)':svm.SVC(probability=True),
                 # 'SVC(C=1.5)':svm.SVC(C=1.5,probability=True),
                 # 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
@@ -68,8 +71,8 @@ X=df.loc[:,['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAVO
             'K_ROC','D_ROC','K_diff','D_diff','J_ROC','J_diff','Close/MA10','Close/MA20','Close/MA50',
             'Close/MA100','Close/MA200','VAR5','VAR10']] 
 ysell=df.loc[:,'Good Sell Point?']
-min_max_scaler = preprocessing.MinMaxScaler()  
-X = min_max_scaler.fit_transform(X) 
+
+X = preprocessing.MinMaxScaler().fit_transform(X) 
 # split train and test data
 xtrain,ytrain=X[:3500],ysell[:3500]
 xtest,ytest=X[3500:],ysell[3500:]
@@ -89,11 +92,11 @@ for method in method_list.loc[0,:]:
 
 name_list= ['Market Good Selling Ratio']
 name_list=np.append(name_list,method_list.columns)
-for stock in stocklist:
-    num_list= ResultTable.loc[ResultTable['Stock']==stock]['AvgScores']
-    plt.barh(range(len(num_list)), num_list,tick_label = name_list)
-    plt.title(stock+'\nPrecision Rate')
-    plt.show()
+
+num_list= ResultTable.loc[ResultTable['Stock']==stock]['AvgScores']
+plt.barh(range(len(num_list)), num_list,tick_label = name_list)
+plt.title(stock+'\nPrecision Rate')
+plt.show()
 #Plot precission rate 
 index=0
 for method in method_list.loc[0,:]:
@@ -130,7 +133,7 @@ for threshold in np.arange(0.87,0.92,0.01):
     plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
     plt.legend(loc='upper left')
     plt.show()
-#%%  Visualize the points       
+#%%  SVM Poly       
 clfsell =svm.SVC(kernel='poly',probability=True)
 clfsell.fit(xtrain, ytrain)
 sellpredicted = clfsell.predict_proba(xtest)    
@@ -150,6 +153,30 @@ for threshold in np.arange(0.78,0.95,0.03):
     plt.plot(x, y2, 'o', ms=4.5, label='Sell Point',color='blue')
     plt.ylim([min(y1)-10, max(y1)+10])
     plt.title(stock+'\nSVM(Poly))\nThreshold='+str(round(threshold,3)))
+    plt.figtext(0.35,0.3,'Sell Ratio='+str(Sellratio)+'%' , fontsize=13)
+    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
+    plt.legend(loc='upper left')
+    plt.show()
+#%%  Random Forrest       
+clfsell =RandomForestClassifier(oob_score=True, random_state=30)
+clfsell.fit(xtrain, ytrain)
+sellpredicted = clfsell.predict_proba(xtest)    
+dfplot=pd.DataFrame()
+dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'GoodSellProb']=sellpredicted[:,1]
+for threshold in np.arange(0.73,0.85,0.03):
+    dfplot['Sell']=0
+    dfplot['SellPrice']=0
+    dfplot.loc[(dfplot['GoodSellProb']>threshold),'Sell'] = 1
+    dfplot.loc[(dfplot['Sell']==1),'SellPrice'] = dfplot['Close']
+    Sellratio=round(100*dfplot['Sell'].sum()/len(dfplot['Sell']),2)
+    x=dfplot.index
+    y1=dfplot['Close']
+    y2=dfplot['SellPrice']
+    plt.plot(x, y1,'c',label='Price')
+    plt.plot(x, y2, 'o', ms=4.5, label='Sell Point',color='blue')
+    plt.ylim([min(y1)-10, max(y1)+10])
+    plt.title(stock+'\nRandomForrest)\nThreshold='+str(round(threshold,3)))
     plt.figtext(0.35,0.3,'Sell Ratio='+str(Sellratio)+'%' , fontsize=13)
     plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
     plt.legend(loc='upper left')
