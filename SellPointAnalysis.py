@@ -21,8 +21,8 @@ from FunctionList import selljudge,stochastic_oscillator,calculate_k,calculate_d
 from sklearn import preprocessing   
 
 method_name = [{
-                 'Random Forrest':RandomForestClassifier(),
-                 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
+                 # 'Random Forrest':RandomForestClassifier(),
+                 # 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
                 # 'SVC(C=1)':svm.SVC(probability=True),
                 # 'SVC(C=1.5)':svm.SVC(C=1.5,probability=True),
                 # 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
@@ -64,7 +64,7 @@ df['Close/MA100']= df['Close']/df['Close'].rolling(100).mean()
 df['Close/MA200']= df['Close']/df['Close'].rolling(200).mean()
 df['VAR5']= df['Close_ROC'].rolling(5).std()
 df['VAR10']= df['Close_ROC'].rolling(10).std()
-selljudge(df,loss=0.0149,cycle=10)
+selljudge(df,cycle=10)
 df.dropna(axis=0, how='any', inplace=True)#Get rid of rows with NA value
 #Retrive X and y 
 X=df.loc[:,['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAVOL5','SP500_ROC','VIX_ROC','VIXMA3','VIXMA5','Close_ROC','rsv','K','D','J',
@@ -109,7 +109,6 @@ for method in method_list.loc[0,:]:
      index=index+1
 
 #%%  Visualize the points       
-#clfsell = svm.SVC(C=1,probability=True)
 clfsell =Xgb(reg_lambda=1)
 clfsell.fit(xtrain, ytrain)
 sellpredicted = clfsell.predict_proba(xtest)    

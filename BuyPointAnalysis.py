@@ -30,7 +30,7 @@ method_name = [{
                 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
                 'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
                 'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
-                'XGBT(λ=1.2)':Xgb(reg_lambda=1.2),
+                'XGBT(λ=1.2)':Xgb(reg_lambda=1.2)
                 }]
 method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
@@ -39,9 +39,7 @@ end = datetime.date.today()
 df_SP500 = web.DataReader("^GSPC", 'yahoo', start,end)
 df_VIX = web.DataReader("^VIX", 'yahoo', start,end)
 
-stocklist=['MSFT'] #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
-stock='MSFT'
-#for stock in stocklist:
+stock='MSFT' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
 df=web.DataReader(stock, 'yahoo', start, end).drop(columns=['Adj Close'])
 rawdata=df
 #Add features in
@@ -67,7 +65,7 @@ df['Close/MA100']= df['Close']/df['Close'].rolling(100).mean()
 df['Close/MA200']= df['Close']/df['Close'].rolling(200).mean()
 df['VAR5']= df['Close_ROC'].rolling(5).std()
 df['VAR10']= df['Close_ROC'].rolling(10).std()
-buyjudge(df,gain=0.024)
+buyjudge(df)
 df.dropna(axis=0, how='any', inplace=True)#Get rid of rows with NA value
 
 #Retrive X and y 
@@ -80,8 +78,8 @@ X = preprocessing.MinMaxScaler().fit_transform(X)
 y=df.loc[:,'Good Buy Point?']
 
 # Split train set and test set
-xtrain,ytrain=X[:3500],y[:3500]
-xtest,ytest=X[3500:],y[3500:]
+xtrain,ytrain=X[:-180],y[:-180]
+xtest,ytest=X[-180:],y[-180:]
 
 
 Market_GoodRatio=sum(df['Good Buy Point?']==1)/len(df['Good Buy Point?'])#Good Buying Point Ratio in market is manully set to nearly 0.5 
@@ -100,11 +98,10 @@ for method in method_list.loc[0,:]:
 
 name_list= ['Market Good Buying Ratio']
 name_list=np.append(name_list,method_list.columns)
-for stock in stocklist:
-    num_list= ResultTable.loc[ResultTable['Stock']==stock]['AvgScores']
-    plt.barh(range(len(num_list)), num_list,tick_label = name_list)
-    plt.title(stock+'\nPrecision Rate')
-    plt.show()
+num_list= ResultTable.loc[ResultTable['Stock']==stock]['AvgScores']
+plt.barh(range(len(num_list)), num_list,tick_label = name_list)
+plt.title(stock+'\nPrecision Rate')
+plt.show()
     
 #Plot precission rate of each method 
 index=0
@@ -121,7 +118,7 @@ clfbuy =GaussianNB(var_smoothing=1)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'Close']=df[-180:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
 #for threshold in np.arange(0.65,0.683,0.003):
 for threshold in np.arange(0.66,0.876,0.04):
@@ -146,7 +143,7 @@ clfbuy = svm.SVC(C=1,kernel='linear',probability=True)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'Close']=df[-180:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
 for threshold in np.arange(0.62,0.8,0.035):
     dfplot['Buy']=0
@@ -170,7 +167,7 @@ clfbuy = svm.SVC(C=1,probability=True)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'Close']=df[-180:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
 for threshold in np.arange(0.63,0.67,0.01):
     dfplot['Buy']=0
@@ -194,7 +191,7 @@ clfbuy = svm.SVC(C=1,kernel='poly',probability=True)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'Close']=df[-180:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
 for threshold in np.arange(0.69,0.73,0.01):
     dfplot['Buy']=0
@@ -219,7 +216,7 @@ clfbuy =RandomForestClassifier(oob_score=True, random_state=30)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'Close']=df[-180:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
 for threshold in np.arange(0.66,0.75,0.015):
     dfplot['Buy']=0

@@ -46,12 +46,15 @@ def stochastic_oscillator(ticker_df,cycle=12, M1=4, M2= 3):
     ticker_df = calculate_dj(ticker_df, M2)
     return ticker_df
 #Evenly separeate all days into good Selling points and poor Selling points
-def selljudge(ticker_df,loss=0.0149,cycle=10):
-    ticker_df['Good Sell Point?'] =0
-    ticker_df.loc[(ticker_df['Close'].rolling(window = cycle).min().shift(-cycle)<(1-loss)*ticker_df['Close']),'Good Sell Point?'] = 1#& (ticker_df['Min']<*ticker_df['Close'])
-    return ticker_df
-#Evenly separeate all days into good buying points and poor buying points
-def buyjudge(ticker_df,gain=0.024,cycle=10):
+
+def selljudge(df,cycle=10):
     #ticker_df['Max'] = ticker_df['Close'].rolling(window = cycle).max().shift(-cycle)
-    ticker_df['Good Buy Point?'] =0
-    ticker_df.loc[(ticker_df['Close'].rolling(window = cycle).max().shift(-cycle)>(1+gain)*ticker_df['Close']),'Good Buy Point?'] = 1
+    df['Good Sell Point?'] =0
+    df['10天最低价'] =df['Close'].rolling(window =cycle).min().shift(-cycle)/df['Close']
+    df.loc[(df['10天最低价']<df['10天最低价'].quantile()),'Good Sell Point?'] = 1
+
+def buyjudge(df,cycle=10):
+    #ticker_df['Max'] = ticker_df['Close'].rolling(window = cycle).max().shift(-cycle)
+    df['Good Buy Point?'] =0
+    df['10天最高价'] =df['Close'].rolling(window =cycle).max().shift(-cycle)/df['Close']
+    df.loc[(df['10天最高价']>df['10天最高价'].quantile()),'Good Buy Point?'] = 1
