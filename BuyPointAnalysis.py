@@ -14,35 +14,37 @@ from xgboost import XGBClassifier as Xgb
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_curve
-from FunctionList import buyjudge,stochastic_oscillator,plot_precision_recall_vs_threshold
+from FunctionList import buyjudge,stochastic_oscillator,plot_precision_recall_vs_threshold,plot_buy
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier   
 matplotlib.style.use('ggplot')
 
+stock='AAPL' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
+
 method_name = [{
-                # 'Random Forrest':RandomForestClassifier(),
-                # 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
-                # 'Bayes(smo=1e-01)':GaussianNB(var_smoothing=1e-01),
-                # 'Bayes(smo=0.5)':GaussianNB(var_smoothing=0.5),
-                # 'Bayes(smo=1)':GaussianNB(var_smoothing=1),
-                # 'Bayes(smo=2)':GaussianNB(var_smoothing=2),
-                # 'SVC(C=1)':svm.SVC(probability=True),
-                # 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
-                # 'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
-                # 'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
-                # 'XGBT(λ=1.2)':Xgb(reg_lambda=1.2)
+                'Random Forrest':RandomForestClassifier(),
+                'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
+                'Bayes(smo=1e-01)':GaussianNB(var_smoothing=1e-01),
+                'Bayes(smo=0.5)':GaussianNB(var_smoothing=0.5),
+                'Bayes(smo=1)':GaussianNB(var_smoothing=1),
+                'Bayes(smo=2)':GaussianNB(var_smoothing=2),
+                'SVC(C=1)':svm.SVC(probability=True),
+                'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
+                'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
+                'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
+                'XGBT(λ=1.2)':Xgb(reg_lambda=1.2)
                 }]
 method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
 start = datetime.datetime(2005,1,1)
-end = datetime.date.today()
+end = datetime.date(2020,6,17)
 df_SP500 = web.DataReader("^GSPC", 'yahoo', start,end)
 df_VIX = web.DataReader("^VIX", 'yahoo', start,end)
 testduration=-180
 
-stock='MSFT' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
 df=web.DataReader(stock, 'yahoo', start, end).drop(columns=['Adj Close'])
-rawdata=df
+rawdata=df.iloc[-180:]['Close']
+
 #Add features in
 df['MAVOL200'] = df['Volume']/df['Volume'].rolling(200).mean()
 df['MAVOL20'] = df['Volume']/df['Volume'].rolling(20).mean()
@@ -67,17 +69,20 @@ df['Close/MA200']= df['Close']/df['Close'].rolling(200).mean()
 df['VAR5']= df['Close_ROC'].rolling(5).std()
 df['VAR10']= df['Close_ROC'].rolling(10).std()
 buyjudge(df)
-df.dropna(axis=0, how='any', inplace=True)#Get rid of rows with NA value
-
-#Retrive X and y 
-X=df.loc[:,['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAVOL5','SP500_ROC',
+featurelist=['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAVOL5','SP500_ROC',
             'VIX_ROC','VIXMA5','VIXMA10','Close_ROC','rsv','K','D','J',
             'K_ROC','D_ROC','K_diff','D_diff','J_ROC','J_diff','Close/MA10',
-            'Close/MA20','Close/MA50','Close/MA100','Close/MA200','VAR5','VAR10']]
+            'Close/MA20','Close/MA50','Close/MA100','Close/MA200','VAR5','VAR10']
+xshow=df.iloc[testduration:,:].loc[:,featurelist]
+xshow = preprocessing.MinMaxScaler().fit_transform(xshow)
 
-X = preprocessing.MinMaxScaler().fit_transform(X) 
+df.dropna(axis=0, how='any', inplace=True)
+
+#Retrive X and y 
+X=df.loc[:,featurelist]
+X = preprocessing.MinMaxScaler().fit_transform(X)
+
 y=df.loc[:,'Good Buy Point?']
-
 # Split train set and test set
 xtrain,ytrain=X[:testduration],y[:testduration]
 xtest,ytest=X[testduration:],y[testduration:]
@@ -104,7 +109,7 @@ plt.barh(range(len(num_list)), num_list,tick_label = name_list)
 plt.title(stock+'\nPrecision Rate')
 plt.show()
     
-#Plot precission rate of each method 
+#Plot precision rate of each method 
 index=0
 for method in method_list.loc[0,:]:
      clf = method
@@ -117,41 +122,49 @@ for method in method_list.loc[0,:]:
 #%%       Naive Bayes       
 clfbuy =GaussianNB(var_smoothing=1) 
 clfbuy.fit(xtrain, ytrain)
-buypredicted = clfbuy.predict_proba(xtest)    
+buypredicted = clfbuy.predict_proba(xshow)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[testduration:]['Close']
+dfplot.loc[:,'Close']=rawdata
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
-plot_buy('Naive Bayes',dfplot,stock,0.93,0.99,0.015)
+plot_buy('Naive Bayes',dfplot,stock,0.9,1,0.03)
 #%%  SVM             
 clfbuy = svm.SVC(C=1,kernel='linear',probability=True)
 clfbuy.fit(xtrain, ytrain)
-buypredicted = clfbuy.predict_proba(xtest)    
+buypredicted = clfbuy.predict_proba(xshow)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[testduration:]['Close']
+dfplot.loc[:,'Close']=rawdata
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
-plot_buy('SVM Linear',dfplot,stock,0.93,0.99,0.015)
+plot_buy('SVM Linear',dfplot,stock,0.9,0.99,0.02)
 #%%  SVM             
 clfbuy = svm.SVC(C=1,probability=True)
 clfbuy.fit(xtrain, ytrain)
-buypredicted = clfbuy.predict_proba(xtest)    
+buypredicted = clfbuy.predict_proba(xshow)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[testduration:]['Close']
+dfplot.loc[:,'Close']=rawdata
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
-plot_buy('SVM ',dfplot,stock,0.93,0.99,0.015)
+plot_buy('SVM ',dfplot,stock,0.9,0.99,0.02)
 #%%  SVM Poly         
 clfbuy = svm.SVC(C=1,kernel='poly',probability=True)
 clfbuy.fit(xtrain, ytrain)
-buypredicted = clfbuy.predict_proba(xtest)    
+buypredicted = clfbuy.predict_proba(xshow)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[testduration:]['Close']
+dfplot.loc[:,'Close']=rawdata
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
 plot_buy('SVM Poly',dfplot,stock,0.93,0.99,0.015)
 
 #%%  Random Forrest       
 clfbuy =RandomForestClassifier(oob_score=True, random_state=30)
 clfbuy.fit(xtrain, ytrain)
-buypredicted = clfbuy.predict_proba(xtest)    
+buypredicted = clfbuy.predict_proba(xshow)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[testduration:]['Close']
+dfplot.loc[:,'Close']=rawdata
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
 plot_buy('Random Forrest',dfplot,stock,0.93,0.99,0.015)
+#%%       XGboost       
+clfbuy =Xgb(reg_lambda=1)
+clfbuy.fit(xtrain, ytrain)
+buypredicted = clfbuy.predict_proba(xshow)    
+dfplot=pd.DataFrame()
+dfplot.loc[:,'Close']=rawdata
+dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
+plot_buy('XGBoost',dfplot,stock,0.9,1,0.03)
