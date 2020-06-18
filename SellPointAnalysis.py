@@ -36,7 +36,7 @@ method_name = [{
 method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
 start = datetime.datetime(2005,1,1)
-end = datetime.datetime(2020,6,17)
+end = datetime.date.today()
 testduration=-180
 df_SP500 = web.DataReader("^GSPC", 'yahoo', start,end)
 df_VIX = web.DataReader("^VIX", 'yahoo', start,end)
@@ -70,7 +70,6 @@ df['VAR5']= df['Close_ROC'].rolling(5).std()
 df['VAR10']= df['Close_ROC'].rolling(10).std()
 selljudge(df,cycle=10)
 
-#%%
 featurelist=['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAVOL5','SP500_ROC',
             'VIX_ROC','VIXMA5','VIXMA10','Close_ROC','rsv','K','D','J',
             'K_ROC','D_ROC','K_diff','D_diff','J_ROC','J_diff','Close/MA10',

@@ -19,25 +19,25 @@ from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier   
 matplotlib.style.use('ggplot')
 
-stock='AAPL' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
+stock='MSFT' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
 
 method_name = [{
-                'Random Forrest':RandomForestClassifier(),
-                'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
-                'Bayes(smo=1e-01)':GaussianNB(var_smoothing=1e-01),
-                'Bayes(smo=0.5)':GaussianNB(var_smoothing=0.5),
-                'Bayes(smo=1)':GaussianNB(var_smoothing=1),
-                'Bayes(smo=2)':GaussianNB(var_smoothing=2),
-                'SVC(C=1)':svm.SVC(probability=True),
-                'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
-                'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
-                'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
-                'XGBT(λ=1.2)':Xgb(reg_lambda=1.2)
+                # 'Random Forrest':RandomForestClassifier(),
+                # 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
+                # 'Bayes(smo=1e-01)':GaussianNB(var_smoothing=1e-01),
+                # 'Bayes(smo=0.5)':GaussianNB(var_smoothing=0.5),
+                # 'Bayes(smo=1)':GaussianNB(var_smoothing=1),
+                # 'Bayes(smo=2)':GaussianNB(var_smoothing=2),
+                # 'SVC(C=1)':svm.SVC(probability=True),
+                # 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
+                # 'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
+                # 'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
+                # 'XGBT(λ=1.2)':Xgb(reg_lambda=1.2)
                 }]
 method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
 start = datetime.datetime(2005,1,1)
-end = datetime.date(2020,6,17)
+end = datetime.date.today()#盘中使用要改成日期形式，比如datetime(2020,6,18)，因为VIX等在收盘才更新数据，要不然会报错
 df_SP500 = web.DataReader("^GSPC", 'yahoo', start,end)
 df_VIX = web.DataReader("^VIX", 'yahoo', start,end)
 testduration=-180

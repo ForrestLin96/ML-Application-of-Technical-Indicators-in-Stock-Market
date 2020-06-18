@@ -47,17 +47,17 @@ def stochastic_oscillator(ticker_df,cycle=12, M1=4, M2= 3):
     return ticker_df
 #Evenly separeate all days into good Selling points and poor Selling points
 
-def selljudge(df,cycle=10):
+def selljudge(df,cycle=10,testduration=180):
     #ticker_df['Max'] = ticker_df['Close'].rolling(window = cycle).max().shift(-cycle)
     df['Good Sell Point?'] =0
     df['10天最低价'] =df['Close'].rolling(window =cycle).min().shift(-cycle)/df['Close']
-    df.loc[(df['10天最低价']<df['10天最低价'].quantile()),'Good Sell Point?'] = 1
+    df.loc[(df['10天最低价']<df['10天最低价'][:-testduration,].quantile()),'Good Sell Point?'] = 1 #6/18新改动在train group里分好坏
 
-def buyjudge(df,cycle=10):
+def buyjudge(df,cycle=10,testduration=180):
     #ticker_df['Max'] = ticker_df['Close'].rolling(window = cycle).max().shift(-cycle)
     df['Good Buy Point?'] =0
     df['10天最高价'] =df['Close'].rolling(window =cycle).max().shift(-cycle)/df['Close']
-    df.loc[(df['10天最高价']>df['10天最高价'].quantile()),'Good Buy Point?'] = 1
+    df.loc[(df['10天最高价']>df['10天最高价'].iloc[:-testduration,].quantile()),'Good Buy Point?'] = 1
 
 def plot_buy(name,dfplot,stock,a=0.93,b=0.99,c=0.015):
     for ratio in np.arange(a,b,c):
