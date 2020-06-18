@@ -34,10 +34,11 @@ method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
 start = datetime.datetime(2005,1,1)
 end = datetime.date.today()
+testduration=-180
 df_SP500 = web.DataReader("^GSPC", 'yahoo', start,end)
 df_VIX = web.DataReader("^VIX", 'yahoo', start,end)
 
-stock='MSFT' #'AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
+stock='NIO' #'AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
 
 df=web.DataReader(stock, 'yahoo', start, end).drop(columns=['Adj Close'])
 rawdata=df
@@ -74,8 +75,8 @@ ysell=df.loc[:,'Good Sell Point?']
 
 X = preprocessing.MinMaxScaler().fit_transform(X) 
 # split train and test data
-xtrain,ytrain=X[:3500],ysell[:3500]
-xtest,ytest=X[3500:],ysell[3500:]
+xtrain,ytrain=X[:testduration],ysell[:testduration]
+xtest,ytest=X[testduration:],ysell[testduration:]
 
 Market_Sell_Ratio=sum(df['Good Sell Point?']==1)/len(df['Good Sell Point?'])#Good Selling Point Ratio in market is manully set to nearly 0.5 
 ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Selling Ratio','AvgScores':Market_Sell_Ratio,'StdScores':0},ignore_index=True)
@@ -109,74 +110,26 @@ for method in method_list.loc[0,:]:
      index=index+1
 
 #%%  Visualize the points       
-clfsell =Xgb(reg_lambda=1)
+clfsell =Xgb(reg_lambda=0.8)
 clfsell.fit(xtrain, ytrain)
 sellpredicted = clfsell.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'Close']=df[testduration:]['Close']
 dfplot.loc[:,'GoodSellProb']=sellpredicted[:,1]
-for threshold in np.arange(0.87,0.92,0.01):
-    dfplot['Sell']=0
-    dfplot['SellPrice']=0
-    dfplot.loc[(dfplot['GoodSellProb']>threshold),'Sell'] = 1
-    dfplot.loc[(dfplot['Sell']==1),'SellPrice'] = dfplot['Close']
-    Sellratio=round(100*dfplot['Sell'].sum()/len(dfplot['Sell']),2)
-    x=dfplot.index
-    y1=dfplot['Close']
-    y2=dfplot['SellPrice']
-    plt.plot(x, y1,'c',label='Price')
-    plt.plot(x, y2, 'o', ms=4.5, label='Sell Point',color='blue')
-    plt.ylim([min(y1)-10, max(y1)+10])
-    plt.title(stock+'\nXGBoost(λ=0.8)\nThreshold='+str(round(threshold,3)))
-    plt.figtext(0.35,0.2,'Sell Ratio='+str(Sellratio)+'%' , fontsize=13)
-    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
-    plt.legend(loc='upper left')
-    plt.show()
+plot_sell('XGBoost',dfplot,stock,0.93,0.99,0.015)
 #%%  SVM Poly       
 clfsell =svm.SVC(kernel='poly',probability=True)
 clfsell.fit(xtrain, ytrain)
 sellpredicted = clfsell.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'Close']=df[testduration:]['Close']
 dfplot.loc[:,'GoodSellProb']=sellpredicted[:,1]
-for threshold in np.arange(0.78,0.95,0.03):
-    dfplot['Sell']=0
-    dfplot['SellPrice']=0
-    dfplot.loc[(dfplot['GoodSellProb']>threshold),'Sell'] = 1
-    dfplot.loc[(dfplot['Sell']==1),'SellPrice'] = dfplot['Close']
-    Sellratio=round(100*dfplot['Sell'].sum()/len(dfplot['Sell']),2)
-    x=dfplot.index
-    y1=dfplot['Close']
-    y2=dfplot['SellPrice']
-    plt.plot(x, y1,'c',label='Price')
-    plt.plot(x, y2, 'o', ms=4.5, label='Sell Point',color='blue')
-    plt.ylim([min(y1)-10, max(y1)+10])
-    plt.title(stock+'\nSVM(Poly))\nThreshold='+str(round(threshold,3)))
-    plt.figtext(0.35,0.3,'Sell Ratio='+str(Sellratio)+'%' , fontsize=13)
-    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
-    plt.legend(loc='upper left')
-    plt.show()
+plot_sell('SVM Poly',dfplot,stock,0.93,0.99,0.015)
 #%%  Random Forrest       
-clfsell =RandomForestClassifier(oob_score=True, random_state=30)
+clfsell =RandomForestClassifier()
 clfsell.fit(xtrain, ytrain)
 sellpredicted = clfsell.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[3500:]['Close']
+dfplot.loc[:,'Close']=df[testduration:]['Close']
 dfplot.loc[:,'GoodSellProb']=sellpredicted[:,1]
-for threshold in np.arange(0.73,0.85,0.03):
-    dfplot['Sell']=0
-    dfplot['SellPrice']=0
-    dfplot.loc[(dfplot['GoodSellProb']>threshold),'Sell'] = 1
-    dfplot.loc[(dfplot['Sell']==1),'SellPrice'] = dfplot['Close']
-    Sellratio=round(100*dfplot['Sell'].sum()/len(dfplot['Sell']),2)
-    x=dfplot.index
-    y1=dfplot['Close']
-    y2=dfplot['SellPrice']
-    plt.plot(x, y1,'c',label='Price')
-    plt.plot(x, y2, 'o', ms=4.5, label='Sell Point',color='blue')
-    plt.ylim([min(y1)-10, max(y1)+10])
-    plt.title(stock+'\nRandomForrest)\nThreshold='+str(round(threshold,3)))
-    plt.figtext(0.35,0.3,'Sell Ratio='+str(Sellratio)+'%' , fontsize=13)
-    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
-    plt.legend(loc='upper left')
-    plt.show()
+plot_sell('Random Forrest',dfplot,stock,0.93,0.99,0.015)

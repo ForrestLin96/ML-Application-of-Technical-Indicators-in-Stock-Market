@@ -20,17 +20,17 @@ from sklearn.ensemble import RandomForestClassifier
 matplotlib.style.use('ggplot')
 
 method_name = [{
-                'Random Forrest':RandomForestClassifier(),
-                'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
-                'Bayes(smo=1e-01)':GaussianNB(var_smoothing=1e-01),
-                'Bayes(smo=0.5)':GaussianNB(var_smoothing=0.5),
-                'Bayes(smo=1)':GaussianNB(var_smoothing=1),
-                'Bayes(smo=2)':GaussianNB(var_smoothing=2),
-                'SVC(C=1)':svm.SVC(probability=True),
-                'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
-                'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
-                'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
-                'XGBT(λ=1.2)':Xgb(reg_lambda=1.2)
+                # 'Random Forrest':RandomForestClassifier(),
+                # 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
+                # 'Bayes(smo=1e-01)':GaussianNB(var_smoothing=1e-01),
+                # 'Bayes(smo=0.5)':GaussianNB(var_smoothing=0.5),
+                # 'Bayes(smo=1)':GaussianNB(var_smoothing=1),
+                # 'Bayes(smo=2)':GaussianNB(var_smoothing=2),
+                # 'SVC(C=1)':svm.SVC(probability=True),
+                # 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
+                # 'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
+                # 'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
+                # 'XGBT(λ=1.2)':Xgb(reg_lambda=1.2)
                 }]
 method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
@@ -38,6 +38,7 @@ start = datetime.datetime(2005,1,1)
 end = datetime.date.today()
 df_SP500 = web.DataReader("^GSPC", 'yahoo', start,end)
 df_VIX = web.DataReader("^VIX", 'yahoo', start,end)
+testduration=-180
 
 stock='MSFT' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
 df=web.DataReader(stock, 'yahoo', start, end).drop(columns=['Adj Close'])
@@ -78,8 +79,8 @@ X = preprocessing.MinMaxScaler().fit_transform(X)
 y=df.loc[:,'Good Buy Point?']
 
 # Split train set and test set
-xtrain,ytrain=X[:-180],y[:-180]
-xtest,ytest=X[-180:],y[-180:]
+xtrain,ytrain=X[:testduration],y[:testduration]
+xtest,ytest=X[testduration:],y[testduration:]
 
 
 Market_GoodRatio=sum(df['Good Buy Point?']==1)/len(df['Good Buy Point?'])#Good Buying Point Ratio in market is manully set to nearly 0.5 
@@ -110,7 +111,7 @@ for method in method_list.loc[0,:]:
      clf.fit(xtrain, ytrain)
      buypredicted = clf.predict_proba(xtest)
      precision, recall, threshold = precision_recall_curve(ytest, buypredicted[:,1])
-     plot_precision_recall_vs_threshold(index,'msft',method_list,precision, recall, threshold)
+     plot_precision_recall_vs_threshold(index,stock,method_list,precision, recall, threshold)
      plt.show()
      index=index+1
 #%%       Naive Bayes       
@@ -118,120 +119,39 @@ clfbuy =GaussianNB(var_smoothing=1)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[-180:]['Close']
+dfplot.loc[:,'Close']=df[testduration:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
-#for threshold in np.arange(0.65,0.683,0.003):
-for threshold in np.arange(0.66,0.876,0.04):
-    dfplot['Buy']=0
-    dfplot['BuyPrice']=0
-    dfplot.loc[(dfplot['GoodBuyProb']>threshold),'Buy'] = 1
-    dfplot.loc[(dfplot['Buy']==1),'BuyPrice'] = dfplot['Close']
-    buyratio=round(100*dfplot['Buy'].sum()/len(dfplot['Buy']),2)
-    x=dfplot.index
-    y1=dfplot['Close']
-    y2=dfplot['BuyPrice']
-    plt.plot(x, y1,'c',label='Price')
-    plt.plot(x, y2, 'o', ms=4.5, label='Buy Point')
-    plt.ylim([min(y1)-10, max(y1)+10])
-    plt.title(stock+'\nNaive Bayes(smooth=1)\nThreshold='+str(round(threshold,3)))
-    plt.figtext(0.35,0.2,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
-    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
-    plt.legend(loc='upper left')
-    plt.show()
+plot_buy('Naive Bayes',dfplot,stock,0.93,0.99,0.015)
 #%%  SVM             
 clfbuy = svm.SVC(C=1,kernel='linear',probability=True)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[-180:]['Close']
+dfplot.loc[:,'Close']=df[testduration:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
-for threshold in np.arange(0.62,0.8,0.035):
-    dfplot['Buy']=0
-    dfplot['BuyPrice']=0
-    dfplot.loc[(dfplot['GoodBuyProb']>threshold),'Buy'] = 1
-    dfplot.loc[(dfplot['Buy']==1),'BuyPrice'] = dfplot['Close']
-    buyratio=round(100*dfplot['Buy'].sum()/len(dfplot['Buy']),2)
-    x=dfplot.index
-    y1=dfplot['Close']
-    y2=dfplot['BuyPrice']
-    plt.plot(x, y1,'c',label='Price')
-    plt.plot(x, y2, 'o', ms=4.5, label='Buy Point')
-    plt.ylim([min(y1)-10, max(y1)+10])
-    plt.title(stock+'\nSVM Linear\nThreshold='+str(round(threshold,3)))
-    plt.figtext(0.35,0.3,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
-    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
-    plt.legend(loc='upper left')
-    plt.show()
+plot_buy('SVM Linear',dfplot,stock,0.93,0.99,0.015)
 #%%  SVM             
 clfbuy = svm.SVC(C=1,probability=True)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[-180:]['Close']
+dfplot.loc[:,'Close']=df[testduration:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
-for threshold in np.arange(0.63,0.67,0.01):
-    dfplot['Buy']=0
-    dfplot['BuyPrice']=0
-    dfplot.loc[(dfplot['GoodBuyProb']>threshold),'Buy'] = 1
-    dfplot.loc[(dfplot['Buy']==1),'BuyPrice'] = dfplot['Close']
-    buyratio=round(100*dfplot['Buy'].sum()/len(dfplot['Buy']),2)
-    x=dfplot.index
-    y1=dfplot['Close']
-    y2=dfplot['BuyPrice']
-    plt.plot(x, y1,'c',label='Price')
-    plt.plot(x, y2, 'o', ms=4.5, label='Buy Point')
-    plt.ylim([min(y1)-10, max(y1)+10])
-    plt.title(stock+'\nSVM \nThreshold='+str(round(threshold,3)))
-    plt.figtext(0.35,0.3,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
-    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
-    plt.legend(loc='upper left')
-    plt.show()
+plot_buy('SVM ',dfplot,stock,0.93,0.99,0.015)
 #%%  SVM Poly         
 clfbuy = svm.SVC(C=1,kernel='poly',probability=True)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[-180:]['Close']
+dfplot.loc[:,'Close']=df[testduration:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
-for threshold in np.arange(0.69,0.73,0.01):
-    dfplot['Buy']=0
-    dfplot['BuyPrice']=0
-    dfplot.loc[(dfplot['GoodBuyProb']>threshold),'Buy'] = 1
-    dfplot.loc[(dfplot['Buy']==1),'BuyPrice'] = dfplot['Close']
-    buyratio=round(100*dfplot['Buy'].sum()/len(dfplot['Buy']),2)
-    x=dfplot.index
-    y1=dfplot['Close']
-    y2=dfplot['BuyPrice']
-    plt.plot(x, y1,'c',label='Price')
-    plt.plot(x, y2, 'o', ms=4.5, label='Buy Point')
-    plt.ylim([min(y1)-10, max(y1)+10])
-    plt.title(stock+'\nSVM Poly \nThreshold='+str(round(threshold,3)))
-    plt.figtext(0.35,0.3,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
-    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
-    plt.legend(loc='upper left')
-    plt.show()
+plot_buy('SVM Poly',dfplot,stock,0.93,0.99,0.015)
 
 #%%  Random Forrest       
 clfbuy =RandomForestClassifier(oob_score=True, random_state=30)
 clfbuy.fit(xtrain, ytrain)
 buypredicted = clfbuy.predict_proba(xtest)    
 dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=df[-180:]['Close']
+dfplot.loc[:,'Close']=df[testduration:]['Close']
 dfplot.loc[:,'GoodBuyProb']=buypredicted[:,1]
-for threshold in np.arange(0.66,0.75,0.015):
-    dfplot['Buy']=0
-    dfplot['BuyPrice']=0
-    dfplot.loc[(dfplot['GoodBuyProb']>threshold),'Buy'] = 1
-    dfplot.loc[(dfplot['Buy']==1),'BuyPrice'] = dfplot['Close']
-    buyratio=round(100*dfplot['Buy'].sum()/len(dfplot['Buy']),2)
-    x=dfplot.index
-    y1=dfplot['Close']
-    y2=dfplot['BuyPrice']
-    plt.plot(x, y1,'c',label='Price')
-    plt.plot(x, y2, 'o', ms=4.5, label='Buy Point')
-    plt.ylim([min(y1)-10, max(y1)+10])
-    plt.title(stock+'\nRandom Forrest \nThreshold='+str(round(threshold,3)))
-    plt.figtext(0.35,0.3,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
-    plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
-    plt.legend(loc='upper left')
-    plt.show()
+plot_buy('Random Forrest',dfplot,stock,0.93,0.99,0.015)

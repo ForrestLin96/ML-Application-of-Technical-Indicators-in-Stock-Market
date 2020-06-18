@@ -58,3 +58,41 @@ def buyjudge(df,cycle=10):
     df['Good Buy Point?'] =0
     df['10天最高价'] =df['Close'].rolling(window =cycle).max().shift(-cycle)/df['Close']
     df.loc[(df['10天最高价']>df['10天最高价'].quantile()),'Good Buy Point?'] = 1
+
+def plot_buy(name,dfplot,stock,a=0.93,b=0.99,c=0.015):
+    for ratio in np.arange(a,b,c):
+        dfplot['Buy']=0
+        dfplot['BuyPrice']=0
+        dfplot.loc[(dfplot['GoodBuyProb']>dfplot['GoodBuyProb'].quantile(ratio)),'Buy'] = 1
+        dfplot.loc[(dfplot['Buy']==1),'BuyPrice'] = dfplot['Close']
+        buyratio=round(100*dfplot['Buy'].sum()/len(dfplot['Buy']),2)
+        x=dfplot.index
+        y1=dfplot['Close']
+        y2=dfplot['BuyPrice']
+        plt.plot(x, y1,'c',label='Price')
+        plt.plot(x, y2, 'o', ms=4.5, label='Buy Point')
+        plt.ylim([min(y1)*0.98, max(y1)*1.02])
+        plt.title(stock+'\n'+name+'\nThreshold='+str(round(dfplot['GoodBuyProb'].quantile(ratio),3)))
+        plt.figtext(0.35,0.3,'Buy Ratio='+str(buyratio)+'%' , fontsize=13)
+        plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
+        plt.legend(loc='upper left')
+        plt.show()
+
+def plot_sell(name,dfplot,stock,a=0.93,b=0.99,c=0.015):
+    for ratio in np.arange(a,b,c):
+        dfplot['Sell']=0
+        dfplot['SellPrice']=0
+        dfplot.loc[(dfplot['GoodSellProb']>dfplot['GoodSellProb'].quantile(ratio)),'Sell'] = 1
+        dfplot.loc[(dfplot['Sell']==1),'SellPrice'] = dfplot['Close']
+        Sellratio=round(100*dfplot['Sell'].sum()/len(dfplot['Sell']),2)
+        x=dfplot.index
+        y1=dfplot['Close']
+        y2=dfplot['SellPrice']
+        plt.plot(x, y1,'c',label='Price')
+        plt.plot(x, y2, 'o', ms=4.5, label='Sell Point',color='blue')
+        plt.ylim([min(y1)*0.98, max(y1)*1.02])
+        plt.title(stock+'\n'+name+'\nThreshold='+str(round(dfplot['GoodSellProb'].quantile(ratio),3)))
+        plt.figtext(0.35,0.3,'Sell Ratio='+str(Sellratio)+'%' , fontsize=13)
+        plt.figtext(0.65,0.8,'Today:'+str(round(dfplot.iloc[-1,1],3)) , fontsize=13)
+        plt.legend(loc='upper left')
+        plt.show()
