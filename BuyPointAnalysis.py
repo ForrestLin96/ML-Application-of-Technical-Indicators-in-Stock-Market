@@ -14,7 +14,7 @@ from xgboost import XGBClassifier as Xgb
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_curve
-from FunctionList import buyjudge,stochastic_oscillator,plot_precision_recall_vs_threshold,plot_buy
+from functionlist import buyjudge,stochastic_oscillator,plot_precision_recall_vs_threshold,plot_buy
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier   
 matplotlib.style.use('ggplot')
@@ -32,7 +32,7 @@ method_name = [{
                 # 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
                 # 'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
                 # 'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
-                # 'XGBT(λ=1.2)':Xgb(reg_lambda=1.2)
+                # 'XGBT(λ=0.8)':Xgb(reg_lambda=0.8)
                 }]
 method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
@@ -88,8 +88,8 @@ y=df.loc[:,'Good Buy Point?']
 xtrain,ytrain=X[:testduration],y[:testduration]
 xtest,ytest=X[testduration:],y[testduration:]
 
-Market_GoodRatio=sum(df['Good Buy Point?']==1)/len(df['Good Buy Point?'])#Good Buying Point Ratio in market is manully set to nearly 0.5 
-ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Buying Ratio','AvgScores':Market_GoodRatio,'StdScores':0},ignore_index=True)
+Market_GoodRatio=sum(df['Good Buy Point?']==1)/len(df['Good Buy Point?'])#Good Buy Point Ratio in market is manully set to nearly 0.5 
+ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Buy Ratio','AvgScores':Market_GoodRatio,'StdScores':0},ignore_index=True)
 
 #Compare and Plot the precision rate of each algorithm        
 index=0
@@ -102,7 +102,7 @@ for method in method_list.loc[0,:]:
     index=index+1
     ResultTable=ResultTable.append(series,ignore_index=True)
 
-name_list= ['Market Good Buying Ratio']
+name_list= ['Market Good Buy Ratio']
 name_list=np.append(name_list,method_list.columns)
 num_list= ResultTable.loc[ResultTable['Stock']==stock]['AvgScores']
 plt.barh(range(len(num_list)), num_list,tick_label = name_list)

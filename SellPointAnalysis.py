@@ -17,7 +17,7 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_curve
 matplotlib.style.use('ggplot')
-from FunctionList import selljudge,stochastic_oscillator,calculate_k,calculate_dj,plot_precision_recall_vs_threshold,plot_sell
+from functionlist import selljudge,stochastic_oscillator,calculate_k,calculate_dj,plot_precision_recall_vs_threshold,plot_sell
 from sklearn import preprocessing   
 
 stock='KR' #'AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
@@ -89,8 +89,8 @@ y=df.loc[:,'Good Sell Point?']
 xtrain,ytrain=X[:testduration],y[:testduration]
 xtest,ytest=X[testduration:],y[testduration:]
 
-Market_Sell_Ratio=sum(df['Good Sell Point?']==1)/len(df['Good Sell Point?'])#Good Selling Point Ratio in market is manully set to nearly 0.5 
-ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Selling Ratio','AvgScores':Market_Sell_Ratio,'StdScores':0},ignore_index=True)
+Market_Sell_Ratio=sum(df['Good Sell Point?']==1)/len(df['Good Sell Point?'])#Good Sell Point Ratio in market is manully set to nearly 0.5 
+ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Sell Ratio','AvgScores':Market_Sell_Ratio,'StdScores':0},ignore_index=True)
 #Compare and Plot the precision rate of each algorithm        
 index=0
 for method in method_list.loc[0,:]:
@@ -102,7 +102,7 @@ for method in method_list.loc[0,:]:
     index=index+1
     ResultTable=ResultTable.append(series,ignore_index=True)
 
-name_list= ['Market Good Selling Ratio']
+name_list= ['Market Good Sell Ratio']
 name_list=np.append(name_list,method_list.columns)
 
 num_list= ResultTable.loc[ResultTable['Stock']==stock]['AvgScores']
