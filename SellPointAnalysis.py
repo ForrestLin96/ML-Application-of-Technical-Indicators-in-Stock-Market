@@ -20,7 +20,7 @@ matplotlib.style.use('ggplot')
 from FunctionList import selljudge,stochastic_oscillator,calculate_k,calculate_dj,plot_precision_recall_vs_threshold,plot_sell
 from sklearn import preprocessing   
 
-stock='AAPL' #'AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
+stock='KR' #'AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
 
 method_name = [{
                 # 'Random Forrest':RandomForestClassifier(),
@@ -76,7 +76,9 @@ featurelist=['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAV
             'Close/MA20','Close/MA50','Close/MA100','Close/MA200','VAR5','VAR10']
 xshow=df.iloc[testduration:,:].loc[:,featurelist]
 xshow = preprocessing.MinMaxScaler().fit_transform(xshow)
-
+if None in xshow[-1,:]:
+    xshow=np.delete(xshow,-1,0)
+    
 df.dropna(axis=0, how='any', inplace=True)
 #Retrive X and y 
 X=df.loc[:,featurelist]
@@ -93,8 +95,8 @@ ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Selling Rati
 index=0
 for method in method_list.loc[0,:]:
     clf = method
-    #cv=TimeSeriesSplit(n_splits=3)
-    scores = cross_val_score(clf,xtrain, ytrain, cv=4,scoring='precision')
+    cv=TimeSeriesSplit(n_splits=5)
+    scores = cross_val_score(clf,xtrain, ytrain, cv=cv,scoring='precision')
     print(scores[scores>0])
     series={'Stock':stock,'Method':method_list.columns[index],'AvgScores':scores[scores>0].mean(),'StdScores':scores[scores>0].std()}
     index=index+1
@@ -126,14 +128,6 @@ dfplot=pd.DataFrame()
 dfplot.loc[:,'Close']=rawdata
 dfplot.loc[:,'GoodSellProb']=sellpredicted[:,1]
 plot_sell('XGBoost',dfplot,stock,0.93,0.99,0.015)
-#%%  Logistic      
-clfsell =LogisticRegression()
-clfsell.fit(xtrain, ytrain)
-sellpredicted = clfsell.predict_proba(xshow)   
-dfplot=pd.DataFrame()
-dfplot.loc[:,'Close']=rawdata
-dfplot.loc[:,'GoodSellProb']=sellpredicted[:,1]
-plot_sell('Logistic Regression',dfplot,stock,0.86,0.1,0.03)
 #%%  SVM Poly       
 clfsell =svm.SVC(kernel='poly',probability=True)
 clfsell.fit(xtrain, ytrain)

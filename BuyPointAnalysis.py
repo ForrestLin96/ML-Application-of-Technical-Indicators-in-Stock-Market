@@ -19,7 +19,7 @@ from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier   
 matplotlib.style.use('ggplot')
 
-stock='MSFT' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
+stock='KR' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
 
 method_name = [{
                 # 'Random Forrest':RandomForestClassifier(),
@@ -75,9 +75,10 @@ featurelist=['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAV
             'Close/MA20','Close/MA50','Close/MA100','Close/MA200','VAR5','VAR10']
 xshow=df.iloc[testduration:,:].loc[:,featurelist]
 xshow = preprocessing.MinMaxScaler().fit_transform(xshow)
-
+if None in xshow[-1,:]:
+    xshow=np.delete(xshow,-1,0)
+    
 df.dropna(axis=0, how='any', inplace=True)
-
 #Retrive X and y 
 X=df.loc[:,featurelist]
 X = preprocessing.MinMaxScaler().fit_transform(X)
@@ -87,7 +88,6 @@ y=df.loc[:,'Good Buy Point?']
 xtrain,ytrain=X[:testduration],y[:testduration]
 xtest,ytest=X[testduration:],y[testduration:]
 
-
 Market_GoodRatio=sum(df['Good Buy Point?']==1)/len(df['Good Buy Point?'])#Good Buying Point Ratio in market is manully set to nearly 0.5 
 ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Buying Ratio','AvgScores':Market_GoodRatio,'StdScores':0},ignore_index=True)
 
@@ -95,7 +95,7 @@ ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Buying Ratio
 index=0
 for method in method_list.loc[0,:]:
     clf = method
-    #cv=TimeSeriesSplit(n_splits=3) #Time series test
+    cv=TimeSeriesSplit(n_splits=4) #Time series test
     scores = cross_val_score(clf,xtrain, ytrain, cv=4,scoring='precision')
     print(scores[scores>0])
     series={'Stock':stock,'Method':method_list.columns[index],'AvgScores':scores[scores>0].mean(),'StdScores':scores[scores>0].std()}
