@@ -19,16 +19,15 @@ from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier   
 matplotlib.style.use('ggplot')
 
-stock='KR' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
-
+stock='gld' #Load ticker data'MSFT','AAPL','AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
+testduration=-90
 method_name = [{
                 # 'Random Forrest':RandomForestClassifier(),
                 # 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
                 # 'Bayes(smo=1e-01)':GaussianNB(var_smoothing=1e-01),
                 # 'Bayes(smo=0.5)':GaussianNB(var_smoothing=0.5),
                 # 'Bayes(smo=1)':GaussianNB(var_smoothing=1),
-                # 'Bayes(smo=2)':GaussianNB(var_smoothing=2),
-                # 'SVC(C=1)':svm.SVC(probability=True),
+                # #'SVC(C=1)':svm.SVC(probability=True),
                 # 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
                 # 'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
                 # 'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
@@ -37,13 +36,13 @@ method_name = [{
 method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
 start = datetime.datetime(2005,1,1)
-end = datetime.date.today()#盘中使用要改成日期形式，比如datetime(2020,6,18)，因为VIX等在收盘才更新数据，要不然会报错
+end = datetime.date.today()
 df_SP500 = web.DataReader("^GSPC", 'yahoo', start,end)
 df_VIX = web.DataReader("^VIX", 'yahoo', start,end)
-testduration=-180
+
 
 df=web.DataReader(stock, 'yahoo', start, end).drop(columns=['Adj Close'])
-rawdata=df.iloc[-180:]['Close']
+rawdata=df.iloc[testduration:]['Close']
 
 #Add features in
 df['MAVOL200'] = df['Volume']/df['Volume'].rolling(200).mean()
@@ -68,7 +67,7 @@ df['Close/MA100']= df['Close']/df['Close'].rolling(100).mean()
 df['Close/MA200']= df['Close']/df['Close'].rolling(200).mean()
 df['VAR5']= df['Close_ROC'].rolling(5).std()
 df['VAR10']= df['Close_ROC'].rolling(10).std()
-buyjudge(df)
+buyjudge(df,duration=testduration)
 featurelist=['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAVOL5','SP500_ROC',
             'VIX_ROC','VIXMA5','VIXMA10','Close_ROC','rsv','K','D','J',
             'K_ROC','D_ROC','K_diff','D_diff','J_ROC','J_diff','Close/MA10',
@@ -88,7 +87,7 @@ y=df.loc[:,'Good Buy Point?']
 xtrain,ytrain=X[:testduration],y[:testduration]
 xtest,ytest=X[testduration:],y[testduration:]
 
-Market_GoodRatio=sum(df['Good Buy Point?']==1)/len(df['Good Buy Point?'])#Good Buy Point Ratio in market is manully set to nearly 0.5 
+Market_GoodRatio=sum(df['Good Buy Point?'].iloc[:testduration,]==1)/len(df['Good Buy Point?'].iloc[:testduration,])#Good Buy Point Ratio in market is manully set to nearly 0.5 
 ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Buy Ratio','AvgScores':Market_GoodRatio,'StdScores':0},ignore_index=True)
 
 #Compare and Plot the precision rate of each algorithm        

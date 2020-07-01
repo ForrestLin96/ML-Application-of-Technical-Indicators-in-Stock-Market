@@ -20,13 +20,13 @@ matplotlib.style.use('ggplot')
 from functionlist import selljudge,stochastic_oscillator,calculate_k,calculate_dj,plot_precision_recall_vs_threshold,plot_sell
 from sklearn import preprocessing   
 
-stock='KR' #'AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
+stock='gld' #'AMZN','GOOG','FB','JNJ','V','PG','JPM','UNH','MA','INTC','VZ','HD','T','PFE','MRK','PEP']
+testduration=-90
 
 method_name = [{
                 # 'Random Forrest':RandomForestClassifier(),
                 # 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
                 # 'SVC(C=1)':svm.SVC(probability=True),
-                # 'SVC(C=1.5)':svm.SVC(C=1.5,probability=True),
                 # 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
                 # 'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
                 # 'XGBT(λ=0.8)':Xgb(reg_lambda=0.8),
@@ -37,7 +37,6 @@ method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
 start = datetime.datetime(2005,1,1)
 end = datetime.date.today()
-testduration=-180
 df_SP500 = web.DataReader("^GSPC", 'yahoo', start,end)
 df_VIX = web.DataReader("^VIX", 'yahoo', start,end)
 
@@ -68,7 +67,7 @@ df['Close/MA100']= df['Close']/df['Close'].rolling(100).mean()
 df['Close/MA200']= df['Close']/df['Close'].rolling(200).mean()
 df['VAR5']= df['Close_ROC'].rolling(5).std()
 df['VAR10']= df['Close_ROC'].rolling(10).std()
-selljudge(df,cycle=10)
+selljudge(df,cycle=10,duration=testduration)
 
 featurelist=['# Inter 10-day','Intersection','MAVOL200','MAVOL20','MAVOL10','MAVOL5','SP500_ROC',
             'VIX_ROC','VIXMA5','VIXMA10','Close_ROC','rsv','K','D','J',
@@ -89,7 +88,7 @@ y=df.loc[:,'Good Sell Point?']
 xtrain,ytrain=X[:testduration],y[:testduration]
 xtest,ytest=X[testduration:],y[testduration:]
 
-Market_Sell_Ratio=sum(df['Good Sell Point?']==1)/len(df['Good Sell Point?'])#Good Sell Point Ratio in market is manully set to nearly 0.5 
+Market_Sell_Ratio=sum(df['Good Sell Point?'].iloc[:testduration,]==1)/len(df['Good Sell Point?'].iloc[:testduration,])#Good Sell Point Ratio in market is manully set to nearly 0.5 
 ResultTable=ResultTable.append({'Stock':stock,'Method':'Market Good Sell Ratio','AvgScores':Market_Sell_Ratio,'StdScores':0},ignore_index=True)
 #Compare and Plot the precision rate of each algorithm        
 index=0
@@ -116,7 +115,7 @@ for method in method_list.loc[0,:]:
      clf.fit(xtrain, ytrain)
      sellpredicted = clf.predict_proba(xtest)
      precision, recall, threshold = precision_recall_curve(ytest, sellpredicted[:,1])
-     plot_precision_recall_vs_threshold(index,'msft',method_list,precision, recall, threshold)
+     plot_precision_recall_vs_threshold(index,stock,method_list,precision, recall, threshold)
      plt.show()
      index=index+1
 
@@ -145,10 +144,11 @@ dfplot.loc[:,'Close']=rawdata
 dfplot.loc[:,'GoodSellProb']=sellpredicted[:,1]
 plot_sell('SVM Linear',dfplot,stock,0.9,0.93,0.015)
 #%%  Random Forrest       
-clfsell =RandomForestClassifier()
+clfsell =RandomForestClassifier(oob_score=True, random_state=30)
 clfsell.fit(xtrain, ytrain)
 sellpredicted = clfsell.predict_proba(xshow)    
 dfplot=pd.DataFrame()
 dfplot.loc[:,'Close']=rawdata
 dfplot.loc[:,'GoodSellProb']=sellpredicted[:,1]
-plot_sell('Random Forrest',dfplot,stock,0.93,0.99,0.015)
+# plot_sell('Random Forrest',dfplot,stock,0.93,0.99,0.015)
+plot_sell('Random Forrest',dfplot,stock,0.8,0.99,0.04)
